@@ -20,6 +20,7 @@ UCLASS()
 class MULTIPLAYERSESSION_API UMultiplayerSessionsSubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
+	
 public:
 	UMultiplayerSessionsSubsystem();
 

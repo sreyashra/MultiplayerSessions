@@ -7,8 +7,9 @@
 #include "OnlineSessionSettings.h"
 #include "OnlineSubsystem.h"
 
-void UMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOfMatch)
+void UMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOfMatch, FString LobbyPath)
 {
+	PathToLobby = FString::Printf(TEXT("%s?listen"), *LobbyPath);
 	NumPublicConnections = NumberOfPublicConnections;
 	MatchType = TypeOfMatch;
 	AddToViewport();
@@ -79,7 +80,12 @@ void UMenu::OnCreateSession(bool bWasSuccessful)
 
 		if (UWorld* World = GetWorld())
 		{
-			World->ServerTravel("/Game/Maps/Lobby?listen");
+			World->ServerTravel(PathToLobby);
+		}
+		
+		if (MultiplayerSessionsSubsystem)
+		{
+			MultiplayerSessionsSubsystem->StartSession(); // Start the session after successful creation and server travel
 		}
 	}
 	else
@@ -130,7 +136,22 @@ void UMenu::OnJoinSession(EOnJoinSessionCompleteResult::Type Result)
 
 void UMenu::OnStartSession(bool bWasSuccessful)
 {
-	
+	if (bWasSuccessful)
+	{
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("Session started successfully")));
+		}
+		// Add any additional logic you need when the session is successfully started
+	}
+	else
+	{
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Failed to start session")));
+		}
+		// Add any additional logic you need when the session start fails
+	}
 }
 
 void UMenu::OnDestroySession(bool bWasSuccessful)
