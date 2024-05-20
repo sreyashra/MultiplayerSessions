@@ -18,7 +18,7 @@ void UMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOfMatch, FStr
 
 	if (UWorld* World = GetWorld())
 	{
-		if (APlayerController*PlayerController = World->GetFirstPlayerController())
+		if (APlayerController* PlayerController = World->GetFirstPlayerController())
 		{
 			FInputModeUIOnly InputModeData;
 			InputModeData.SetWidgetToFocus(TakeWidget());
@@ -38,8 +38,8 @@ void UMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOfMatch, FStr
 		MultiplayerSessionsSubsystem->MultiplayerOnCreateSessionComplete.AddDynamic(this, &UMenu::OnCreateSession);
 		MultiplayerSessionsSubsystem->MultiplayerOnFindSessionsComplete.AddUObject(this, &UMenu::OnFindSessions);
 		MultiplayerSessionsSubsystem->MultiplayerOnJoinSessionComplete.AddUObject(this, &UMenu::OnJoinSession);
-		MultiplayerSessionsSubsystem->MultiplayerOnStartSessionComplete.AddDynamic(this, &UMenu::OnStartSession);
 		MultiplayerSessionsSubsystem->MultiplayerOnDestroySessionComplete.AddDynamic(this, &UMenu::OnDestroySession);
+		MultiplayerSessionsSubsystem->MultiplayerOnStartSessionComplete.AddDynamic(this, &UMenu::OnStartSession);
 	}
 }
 
@@ -52,11 +52,11 @@ bool UMenu::Initialize()
 
 	if (HostButton)
 	{
-		HostButton->OnClicked.AddDynamic(this, &UMenu::HostButtonClicked);
+		HostButton->OnClicked.AddDynamic(this, &ThisClass::HostButtonClicked);
 	}
 	if (JoinButton)
 	{
-		JoinButton->OnClicked.AddDynamic(this, &ThisClass::UMenu::JoinButtonClicked);
+		JoinButton->OnClicked.AddDynamic(this, &ThisClass::JoinButtonClicked);
 	}
 
 	return true;
@@ -65,7 +65,6 @@ bool UMenu::Initialize()
 void UMenu::NativeDestruct()
 {
 	MenuTearDown();
-	
 	Super::NativeDestruct();
 }
 
@@ -73,50 +72,39 @@ void UMenu::OnCreateSession(bool bWasSuccessful)
 {
 	if (bWasSuccessful)
 	{
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Yellow, FString(TEXT("Session created successfully")));
-		}
-
 		if (UWorld* World = GetWorld())
 		{
 			World->ServerTravel(PathToLobby);
-		}
-		
-		if (MultiplayerSessionsSubsystem)
-		{
-			MultiplayerSessionsSubsystem->StartSession(); // Start the session after successful creation and server travel
 		}
 	}
 	else
 	{
 		if (GEngine)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString(TEXT("Failed to create session")));
-			HostButton->SetIsEnabled(true);
+			GEngine->AddOnScreenDebugMessage(-1,15.f, FColor::Red,FString(TEXT("Failed to create session!")));
 		}
+		HostButton->SetIsEnabled(true);
 	}
 }
 
-void UMenu::OnFindSessions(const TArray<FOnlineSessionSearchResult>& SessionResults, bool bWasSuccessful)
+void UMenu::OnFindSessions(const TArray<FOnlineSessionSearchResult>& SessionSearchResults, bool bWasSuccessful)
 {
 	if (MultiplayerSessionsSubsystem == nullptr)
 	{
 		return;
 	}
-	
-	for (FOnlineSessionSearchResult Result : SessionResults)
+
+	for (FOnlineSessionSearchResult Result : SessionSearchResults)
 	{
 		FString SettingsValue;
-		Result.Session.SessionSettings.Get(FName("MatchType"), MatchType);
+		Result.Session.SessionSettings.Get(FName("MatchType"), SettingsValue);
 		if (SettingsValue == MatchType)
 		{
 			MultiplayerSessionsSubsystem->JoinSession(Result);
 			return;
 		}
 	}
-
-	if (!bWasSuccessful || SessionResults.Num() == 0)
+	if (!bWasSuccessful || SessionSearchResults.Num() == 0)
 	{
 		JoinButton->SetIsEnabled(true);
 	}
@@ -134,38 +122,18 @@ void UMenu::OnJoinSession(EOnJoinSessionCompleteResult::Type Result)
 
 			if (APlayerController* PlayerController = GetGameInstance()->GetFirstLocalPlayerController())
 			{
-				PlayerController->ClientTravel(Address, TRAVEL_Absolute);
+				PlayerController->ClientTravel(Address, ETravelType::TRAVEL_Absolute);
 			}
 		}
-	}
-
-	if (Result != EOnJoinSessionCompleteResult::Success)
-	{
-		JoinButton->SetIsEnabled(true);
-	}
-}
-
-void UMenu::OnStartSession(bool bWasSuccessful)
-{
-	if (bWasSuccessful)
-	{
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("Session started successfully")));
-		}
-		// Add any additional logic you need when the session is successfully started
-	}
-	else
-	{
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Failed to start session")));
-		}
-		// Add any additional logic you need when the session start fails
 	}
 }
 
 void UMenu::OnDestroySession(bool bWasSuccessful)
+{
+	
+}
+
+void UMenu::OnStartSession(bool bWasSuccessful)
 {
 	
 }
@@ -191,7 +159,6 @@ void UMenu::JoinButtonClicked()
 void UMenu::MenuTearDown()
 {
 	RemoveFromParent();
-
 	if (UWorld* World = GetWorld())
 	{
 		if (APlayerController* PlayerController = World->GetFirstPlayerController())
